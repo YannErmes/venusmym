@@ -1,557 +1,243 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Formulaire de Vente</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            overflow-x: hidden;
-        }
-
-        /* Animated background elements */
-        .bg-animation {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            top: 0;
-            left: 0;
-            z-index: 0;
-            opacity: 0.1;
-        }
-
-        .floating-shape {
-            position: absolute;
-            border-radius: 50%;
-            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
-            animation: float 6s ease-in-out infinite;
-        }
-
-        .shape1 {
-            width: 80px;
-            height: 80px;
-            top: 20%;
-            left: 10%;
-            animation-delay: 0s;
-        }
-
-        .shape2 {
-            width: 120px;
-            height: 120px;
-            top: 60%;
-            right: 15%;
-            animation-delay: 2s;
-        }
-
-        .shape3 {
-            width: 60px;
-            height: 60px;
-            top: 80%;
-            left: 20%;
-            animation-delay: 4s;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-20px) rotate(180deg); }
-        }
-
-        .container {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            max-width: 600px;
-        }
-
-        .form-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 24px;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
-            padding: 40px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            animation: slideIn 0.8s ease-out;
-        }
-
-        @keyframes slideIn {
-            0% { 
-                opacity: 0;
-                transform: translateY(30px) scale(0.9);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-
-        h1 {
-            text-align: center;
-            color: #2d3748;
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 10px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: titleGlow 2s ease-in-out infinite alternate;
-        }
-
-        @keyframes titleGlow {
-            0% { filter: drop-shadow(0 0 5px rgba(102, 126, 234, 0.3)); }
-            100% { filter: drop-shadow(0 0 15px rgba(118, 75, 162, 0.5)); }
-        }
-
-        .subtitle {
-            text-align: center;
-            color: #718096;
-            font-size: 1.1rem;
-            margin-bottom: 40px;
-            font-weight: 400;
-        }
-
-        .form-group {
-            margin-bottom: 25px;
-            animation: fadeInUp 0.6s ease-out forwards;
-            opacity: 0;
-        }
-
-        .form-group:nth-child(1) { animation-delay: 0.1s; }
-        .form-group:nth-child(2) { animation-delay: 0.2s; }
-        .form-group:nth-child(3) { animation-delay: 0.3s; }
-        .form-group:nth-child(4) { animation-delay: 0.4s; }
-        .form-group:nth-child(5) { animation-delay: 0.5s; }
-        .form-group:nth-child(6) { animation-delay: 0.6s; }
-        .form-group:nth-child(7) { animation-delay: 0.7s; }
-        .form-group:nth-child(8) { animation-delay: 0.8s; }
-
-        @keyframes fadeInUp {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-        }
-
-        label {
-            display: block;
-            font-weight: 600;
-            color: #4a5568;
-            margin-bottom: 8px;
-            font-size: 0.95rem;
-            letter-spacing: 0.025em;
-        }
-
-        select, input[type="datetime-local"], input[type="number"] {
-            width: 100%;
-            padding: 16px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            font-size: 1rem;
-            background: #fafafa;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            font-family: 'Inter', sans-serif;
-        }
-
-        select:focus, input:focus {
-            outline: none;
-            border-color: #667eea;
-            background: white;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-            transform: translateY(-2px);
-        }
-
-        select:hover, input:hover {
-            border-color: #cbd5e0;
-            transform: translateY(-1px);
-        }
-
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            padding: 16px;
-            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
-            border-radius: 12px;
-            border: 2px solid #e2e8f0;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .checkbox-group:hover {
-            border-color: #667eea;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);
-        }
-
-        input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            margin-right: 12px;
-            cursor: pointer;
-            accent-color: #667eea;
-        }
-
-        .checkbox-label {
-            margin: 0;
-            cursor: pointer;
-            font-weight: 500;
-        }
-
-        .submit-btn {
-            width: 100%;
-            padding: 18px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-            margin-top: 20px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .submit-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
-        }
-
-        .submit-btn:active {
-            transform: translateY(-1px);
-        }
-
-        .submit-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.5s;
-        }
-
-        .submit-btn:hover::before {
-            left: 100%;
-        }
-
-        /* Loading animation */
-        .loading {
-            position: relative;
-        }
-
-        .loading::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 20px;
-            height: 20px;
-            margin: -10px 0 0 -10px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top: 2px solid white;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* Success animation */
-        .success-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(76, 175, 80, 0.9);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-        }
-
-        .success-overlay.show {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .success-content {
-            text-align: center;
-            color: white;
-            animation: successBounce 0.6s ease-out;
-        }
-
-        .success-icon {
-            font-size: 4rem;
-            margin-bottom: 20px;
-            animation: checkmark 0.6s ease-out;
-        }
-
-        @keyframes successBounce {
-            0% { transform: scale(0.3); opacity: 0; }
-            50% { transform: scale(1.05); }
-            70% { transform: scale(0.9); }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        @keyframes checkmark {
-            0% { transform: scale(0) rotate(45deg); }
-            100% { transform: scale(1) rotate(45deg); }
-        }
-
-        .success-message {
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-
-        .success-details {
-            font-size: 1rem;
-            opacity: 0.9;
-        }
-
-        /* Responsive design */
-        @media (max-width: 768px) {
-            .form-card {
-                margin: 20px;
-                padding: 30px;
-            }
-            
-            h1 {
-                font-size: 2rem;
-            }
-            
-            .floating-shape {
-                display: none;
-            }
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Produits (Auto-switch HTTP/HTTPS)</title>
+  <style>
+    :root{--bg:#f6f7fb;--card:#fff;--muted:#666;--accent:#1f8f4a}
+    body{font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);margin:0;padding:20px}
+    .wrap{max-width:1100px;margin:0 auto}
+    header{display:flex;gap:12px;align-items:center}
+    h1{margin:0;font-size:20px;color:#111}
+    #note{margin-left:auto;color:var(--muted);font-size:13px}
+    #product-list{margin-top:18px;display:grid;gap:16px;
+      grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+    .card{background:var(--card);border-radius:12px;overflow:hidden;box-shadow:0 6px 18px rgba(10,10,20,0.06);
+      display:flex;flex-direction:column;transition:transform .16s}
+    .card:hover{transform:translateY(-6px)}
+    .thumb{width:100%;height:180px;object-fit:cover;background:linear-gradient(90deg,#eee,#f3f3f3)}
+    .content{padding:12px;display:flex;flex-direction:column;gap:8px}
+    .title{font-weight:700;margin:0;color:#111;font-size:16px}
+    .desc{margin:0;color:var(--muted);font-size:13px;line-height:1.25}
+    .meta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px}
+    .price{font-weight:800;color:var(--accent)}
+    .category{font-size:12px;padding:6px 9px;border-radius:999px;color:#fff}
+    .loading{margin-top:18px;color:var(--muted)}
+    .error{margin-top:18px;color:#a33;background:#fff0f0;padding:12px;border-radius:8px}
+    footer{margin-top:24px;color:var(--muted);font-size:13px}
+    @media (max-width:420px){ .thumb{height:140px} }
+  </style>
 </head>
 <body>
-    <div class="bg-animation">
-        <div class="floating-shape shape1"></div>
-        <div class="floating-shape shape2"></div>
-        <div class="floating-shape shape3"></div>
+  <div class="wrap">
+    <header>
+      <h1>Nos Produits</h1>
+      <div id="note">Auto HTTP/HTTPS fallback + proxy</div>
+    </header>
+
+    <div id="product-list" aria-live="polite"></div>
+    <div id="loading" class="loading">Chargement…</div>
+    <div id="error" class="error" style="display:none"></div>
+
+    <footer>
+      Pour la production : installez HTTPS sur l'API ou déployez un proxy HTTPS que vous contrôlez.
+    </footer>
+  </div>
+
+<script>
+/*
+  Smart fetch logic:
+  - Builds two candidate endpoints: https://... and http://...
+  - For each candidate it tries:
+      1) direct fetch
+      2) proxies (HTTPS) if direct fails
+  - Returns the first successful parsed JSON (must be an array or object).
+  - Proxies used: allorigins.win and corsproxy.io (public — may be rate-limited).
+*/
+
+const ORIGINAL_API = 'http://gpower.ct.ws/api/produits.php?i=1';
+
+// Public HTTPS proxies (fallback). For reliability deploy your own proxy.
+const PROXIES = [
+  { prefix: 'https://api.allorigins.win/raw?url=' }, // returns raw body
+  { prefix: 'https://corsproxy.io/?' }               // returns proxied content
+];
+
+async function tryDirectFetch(url) {
+  // direct fetch - may fail due to network or mixed-content
+  const resp = await fetch(url, { cache: 'no-store' });
+  if (!resp.ok) throw new Error('HTTP ' + resp.status);
+  // try parse as json
+  return await resp.json();
+}
+
+async function tryProxyFetch(proxyPrefix, targetUrl) {
+  const proxied = proxyPrefix + encodeURIComponent(targetUrl);
+  const r = await fetch(proxied, { cache: 'no-store' });
+  if (!r.ok) throw new Error('Proxy ' + proxyPrefix + ' returned ' + r.status);
+  const text = await r.text();
+  // attempt parse JSON
+  try { return JSON.parse(text); }
+  catch(e) { throw new Error('Proxy returned non-JSON'); }
+}
+
+function buildCandidates(origUrl) {
+  // ensure we can build both https and http variants
+  try {
+    const u = new URL(origUrl);
+    const hostAndPath = u.host + u.pathname + (u.search || '');
+    const httpsUrl = 'https://' + hostAndPath;
+    const httpUrl = 'http://' + hostAndPath;
+    // Prefer HTTPS variant first
+    return [httpsUrl, httpUrl];
+  } catch (e) {
+    // fallback - just return original and scheme swapped
+    if (origUrl.startsWith('https://')) return [origUrl, origUrl.replace(/^https:/,'http:')];
+    if (origUrl.startsWith('http://')) return [origUrl.replace(/^http:/,'https:'), origUrl];
+    return [origUrl];
+  }
+}
+
+async function fetchSmart(origUrl) {
+  const candidates = buildCandidates(origUrl);
+  const pageIsHttps = (location.protocol === 'https:');
+  const errors = [];
+
+  // For each candidate endpoint, try direct then proxies
+  for (const cand of candidates) {
+    // If page is HTTPS and candidate is HTTP, direct fetch will likely be blocked by mixed content.
+    // But we'll still attempt and catch the failure, then try proxies.
+    try {
+      // If candidate is HTTP but page is HTTPS, we can skip direct attempt to avoid console noise.
+      if (!(pageIsHttps && cand.startsWith('http:'))) {
+        const direct = await tryDirectFetch(cand);
+        return { data: direct, used: cand, via: 'direct' };
+      }
+    } catch (err) {
+      errors.push({ candidate: cand, stage: 'direct', error: err.message });
+      // continue to try proxies below
+    }
+
+    // Try proxies for this candidate
+    for (const p of PROXIES) {
+      try {
+        const res = await tryProxyFetch(p.prefix, cand);
+        return { data: res, used: cand, via: 'proxy:' + p.prefix };
+      } catch (err) {
+        errors.push({ candidate: cand, stage: 'proxy:' + p.prefix, error: err.message });
+      }
+    }
+  }
+
+  // If all failed, throw with aggregated info
+  const msg = 'All attempts failed. Attempts: ' + JSON.stringify(errors, null, 2);
+  throw new Error(msg);
+}
+
+// Image proxying: use images.weserv.nl (HTTPS) for remote images. If image host is localhost -> use placeholder.
+function proxiedImageUrl(imgUrl) {
+  if (!imgUrl) return placeholderUrl();
+  try {
+    const u = new URL(imgUrl);
+    // if image is from localhost or 127.0.0.1, can't fetch from browser; use placeholder
+    if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') return placeholderUrl();
+    // remove scheme for weserv
+    const noScheme = u.hostname + u.pathname + (u.search || '');
+    return 'https://images.weserv.nl/?url=' + encodeURIComponent(noScheme) + '&w=900&fit=cover';
+  } catch (e) {
+    return placeholderUrl();
+  }
+}
+
+function placeholderUrl() {
+  // small data URI placeholder or an external stable image
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    `<svg xmlns='http://www.w3.org/2000/svg' width='900' height='600'>
+       <rect width='100%' height='100%' fill='#efefef'/>
+       <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='#888' font-size='28'>
+         Image indisponible
+       </text>
+     </svg>`
+  );
+}
+
+function sanitize(str) {
+  if (!str) return '';
+  return String(str).replaceAll('<','&lt;').replaceAll('>','&gt;');
+}
+
+function createCard(p) {
+  const div = document.createElement('div');
+  div.className = 'card';
+  const title = sanitize(p.nom || p.name || 'Produit');
+  const desc = sanitize(p.description || '');
+  const price = p.prix || p.price || '';
+  const category = sanitize(p.categorie_nom || p.category || 'Non classé');
+  const color = p.categorie_couleur || '#333';
+  const imgSrc = proxiedImageUrl(p.image || '');
+
+  div.innerHTML = `
+    <img class="thumb" loading="lazy" src="${imgSrc}" alt="${title}">
+    <div class="content">
+      <div>
+        <div class="title">${title}</div>
+        <p class="desc">${desc}</p>
+      </div>
+      <div class="meta">
+        <div class="price">${price ? price + ' MAD' : ''}</div>
+        <div class="category" style="background:${color}">${category}</div>
+      </div>
     </div>
+  `;
+  const img = div.querySelector('img');
+  img.addEventListener('error', ()=> { img.src = placeholderUrl(); img.style.objectFit = 'contain'; });
+  return div;
+}
 
-    <div class="container">
-        <div class="form-card">
-            <h1>Formulaire de Vente</h1>
-            <p class="subtitle">Créez votre vente en quelques clics ✨</p>
-            
-            <form id="venteForm">
-                <div class="form-group">
-                    <label for="shift">🕐 Shift :</label>
-                    <select id="shift" required>
-                        <option value="">-- Sélectionnez un shift --</option>
-                        <option value="matin">🌅 Matin</option>
-                        <option value="après-midi">☀️ Après-midi</option>
-                        <option value="soirée">🌆 Soirée</option>
-                        <option value="nuit">🌙 Nuit</option>
-                    </select>
-                </div>
+async function loadProducts() {
+  const productList = document.getElementById('product-list');
+  const loading = document.getElementById('loading');
+  const errorBox = document.getElementById('error');
+  productList.innerHTML = '';
+  errorBox.style.display = 'none';
+  loading.style.display = 'block';
+  loading.textContent = 'Chargement…';
 
-                <div class="form-group">
-                    <label for="datetime">📅 Date et Heure :</label>
-                    <input type="datetime-local" id="datetime" required>
-                </div>
+  try {
+    const result = await fetchSmart(ORIGINAL_API);
+    const data = result.data;
+    loading.style.display = 'none';
 
-                <div class="form-group">
-                    <label for="chatter">👤 Chatter :</label>
-                    <select id="chatter" required>
-                        <option value="">-- Sélectionnez un nom --</option>
-                    </select>
-                </div>
+    // Normalise: if object contains data wrapper, try common keys
+    const list = Array.isArray(data) ? data : (data.data || data.items || []);
+    if (!list || list.length === 0) {
+      loading.style.display = 'block';
+      loading.textContent = 'Aucun produit trouvé.';
+      return;
+    }
 
-                <div class="form-group">
-                    <label for="chatterDuo">👥 Chatter Duo :</label>
-                    <select id="chatterDuo">
-                        <option value="">-- Sélectionnez un nom --</option>
-                    </select>
-                </div>
+    // Show debug note of which endpoint used (small)
+    const note = document.getElementById('note');
+    note.textContent = `Chargé depuis: ${result.used} via ${result.via}`;
 
-                <div class="form-group">
-                    <label for="modele">🎯 Modèle :</label>
-                    <select id="modele" required>
-                        <option value="">-- Sélectionnez un modèle --</option>
-                        <option value="Modèle A">✨ Modèle A</option>
-                        <option value="Modèle B">⭐ Modèle B</option>
-                        <option value="Modèle C">🌟 Modèle C</option>
-                    </select>
-                </div>
+    for (const item of list) {
+      const c = createCard(item);
+      productList.appendChild(c);
+    }
 
-                <div class="form-group">
-                    <label for="prix">💰 Prix :</label>
-                    <input type="number" id="prix" step="0.01" required placeholder="0.00">
-                </div>
+  } catch (err) {
+    loading.style.display = 'none';
+    errorBox.style.display = 'block';
+    // keep message short for UI, but log full error in console
+    errorBox.innerHTML = `<strong>Erreur :</strong> Impossible de charger les produits. Voir console pour détails.`;
+    console.error('fetchSmart error:', err);
+  }
+}
 
-                <div class="form-group">
-                    <label for="typeVente">📊 Type de Vente :</label>
-                    <select id="typeVente" required>
-                        <option value="">-- Sélectionnez un type --</option>
-                        <option value="Type 1">🚀 Type 1</option>
-                        <option value="Type 2">💎 Type 2</option>
-                        <option value="Type 3">⚡ Type 3</option>
-                    </select>
-                </div>
+// Start
+loadProducts();
 
-                <div class="form-group">
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="addHeader">
-                        <label for="addHeader" class="checkbox-label">📋 Ajouter un nouvel en-tête</label>
-                    </div>
-                </div>
-
-                <button type="submit" class="submit-btn" id="submitBtn">
-                    <span id="btnText">Envoyer ma vente</span>
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <div class="success-overlay" id="successOverlay">
-        <div class="success-content">
-            <div class="success-icon">✓</div>
-            <div class="success-message">Données envoyées avec succès !</div>
-            <div class="success-details" id="successDetails"></div>
-        </div>
-    </div>
-
-    <script>
-        // Liste de noms aléatoires pour les chatters
-        const nomsChatters = ["Alice", "Bob", "🦊Toky Rafalimanana", "Diana", "Eve", "Frank", "Grace", "Henry"];
-        
-        // Remplir les listes déroulantes avec les noms aléatoires
-        const chatterSelect = document.getElementById("chatter");
-        const chatterDuoSelect = document.getElementById("chatterDuo");
-        
-        nomsChatters.forEach(nom => {
-            const option = document.createElement("option");
-            option.value = nom;
-            option.textContent = nom;
-            chatterSelect.appendChild(option);
-            
-            const optionDuo = document.createElement("option");
-            optionDuo.value = nom;
-            optionDuo.textContent = nom;
-            chatterDuoSelect.appendChild(optionDuo);
-        });
-
-        // Envoi du formulaire avec animation
-        document.getElementById("venteForm").addEventListener("submit", function(e) {
-            e.preventDefault();
-            
-            const submitBtn = document.getElementById("submitBtn");
-            const btnText = document.getElementById("btnText");
-            
-            // Animation du bouton de chargement
-            submitBtn.classList.add("loading");
-            btnText.textContent = "Envoi en cours...";
-            submitBtn.disabled = true;
-            
-            const data = {
-                datetime: document.getElementById("datetime").value,
-                shift: document.getElementById("shift").value,
-                chatter: document.getElementById("chatter").value,
-                chatterDuo: document.getElementById("chatterDuo").value,
-                modele: document.getElementById("modele").value,
-                prix: parseFloat(document.getElementById("prix").value),
-                typeVente: document.getElementById("typeVente").value,
-                addNewHeader: document.getElementById("addHeader").checked,
-            };
-            
-            // Simuler un délai pour l'animation
-            setTimeout(() => {
-                sendData(data);
-            }, 1500);
-        });
-
-        function sendData(data) {
-            fetch("https://script.google.com/macros/s/AKfycbyRo85jMnPt7I_uq_RRwu-6vg2raCPaivrnc8GtlElppVKKnZqSHeGKkVYbLQsbD4mO/exec", {
-                method: "POST",
-                mode: "no-cors",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(data),
-            })
-            .then(response => {
-                showSuccessAnimation(data.chatter);
-                resetForm();
-            })
-            .catch(error => {
-                console.error("Erreur lors de l'envoi : " + error);
-                showSuccessAnimation(data.chatter); // Même en cas d'erreur, on affiche le succès car mode no-cors
-                resetForm();
-            });
-        }
-
-        function showSuccessAnimation(chatterName) {
-            const overlay = document.getElementById("successOverlay");
-            const details = document.getElementById("successDetails");
-            
-            details.textContent = `Données ajoutées dans l'onglet '${chatterName}' !`;
-            overlay.classList.add("show");
-            
-            setTimeout(() => {
-                overlay.classList.remove("show");
-            }, 3000);
-        }
-
-        function resetForm() {
-            const submitBtn = document.getElementById("submitBtn");
-            const btnText = document.getElementById("btnText");
-            
-            setTimeout(() => {
-                submitBtn.classList.remove("loading");
-                btnText.textContent = "Envoyer ma vente";
-                submitBtn.disabled = false;
-                document.getElementById("venteForm").reset();
-            }, 500);
-        }
-
-        // Animation de parallaxe pour les formes flottantes
-        document.addEventListener("mousemove", function(e) {
-            const shapes = document.querySelectorAll(".floating-shape");
-            const x = e.clientX / window.innerWidth;
-            const y = e.clientY / window.innerHeight;
-            
-            shapes.forEach((shape, index) => {
-                const speed = (index + 1) * 0.5;
-                const xPos = (x - 0.5) * speed * 20;
-                const yPos = (y - 0.5) * speed * 20;
-                
-                shape.style.transform = `translate(${xPos}px, ${yPos}px)`;
-            });
-        });
-    </script>
+</script>
 </body>
 </html>
