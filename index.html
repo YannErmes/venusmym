@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Produits (Auto-switch HTTP/HTTPS)</title>
+  <title>Nos Produits</title>
   <style>
     :root{--bg:#f6f7fb;--card:#fff;--muted:#666;--accent:#1f8f4a}
     body{font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);margin:0;padding:20px}
@@ -33,105 +33,19 @@
   <div class="wrap">
     <header>
       <h1>Nos Produits</h1>
-      <div id="note">Auto HTTP/HTTPS fallback + proxy</div>
+      <div id="note">Chargement des données via proxy...</div>
     </header>
     <div id="product-list" aria-live="polite"></div>
     <div id="loading" class="loading">Chargement…</div>
     <div id="error" class="error" style="display:none"></div>
     <footer>
-      Pour la production : installez HTTPS sur l'API ou déployez un proxy HTTPS que vous contrôlez.
+      Les données sont chargées via un proxy public.
     </footer>
   </div>
+
 <script>
-  /*
-    Smart fetch logic:
-    - Builds two candidate endpoints: https://... and http://...
-    - For each candidate it tries:
-        1) direct fetch
-        2) proxies (HTTPS) if direct fails
-    - Returns the first successful parsed JSON (must be an array or object).
-    - Proxies used: allorigins.win and corsproxy.io (public — may be rate-limited).
-  */
-  const ORIGINAL_API = 'http://gpower.ct.ws/api/produits.php?i=1';
-  // Public HTTPS proxies (fallback). For reliability deploy your own proxy.
-  const PROXIES = [
-    { prefix: 'https://api.allorigins.win/raw?url=' }, // returns raw body
-    { prefix: 'https://corsproxy.io/?' }               // returns proxied content
-  ];
-
-  async function tryDirectFetch(url) {
-    try {
-      const resp = await fetch(url, { cache: 'no-store' });
-      if (!resp.ok) throw new Error('HTTP ' + resp.status);
-      return await resp.json();
-    } catch (err) {
-      throw new Error('Direct fetch failed: ' + err.message);
-    }
-  }
-
-  async function tryProxyFetch(proxyPrefix, targetUrl) {
-    try {
-      const proxied = proxyPrefix + encodeURIComponent(targetUrl);
-      const r = await fetch(proxied, { cache: 'no-store' });
-      if (!r.ok) throw new Error('Proxy ' + proxyPrefix + ' returned ' + r.status);
-      const text = await r.text();
-      try { return JSON.parse(text); }
-      catch(e) { throw new Error('Proxy returned non-JSON'); }
-    } catch (err) {
-      throw new Error('Proxy fetch failed: ' + err.message);
-    }
-  }
-
-  function buildCandidates(origUrl) {
-    try {
-      const u = new URL(origUrl);
-      const hostAndPath = u.host + u.pathname + (u.search || '');
-      const httpsUrl = 'https://' + hostAndPath;
-      const httpUrl = 'http://' + hostAndPath;
-      return [httpsUrl, httpUrl];
-    } catch (e) {
-      if (origUrl.startsWith('https://')) return [origUrl, origUrl.replace(/^https:/,'http:')];
-      if (origUrl.startsWith('http://')) return [origUrl.replace(/^http:/,'https:'), origUrl];
-      return [origUrl];
-    }
-  }
-
-  async function fetchSmart(origUrl) {
-    const candidates = buildCandidates(origUrl);
-    const pageIsHttps = (location.protocol === 'https:');
-    const errors = [];
-    for (const cand of candidates) {
-      try {
-        if (!(pageIsHttps && cand.startsWith('http:'))) {
-          const direct = await tryDirectFetch(cand);
-          return { data: direct, used: cand, via: 'direct' };
-        }
-      } catch (err) {
-        errors.push({ candidate: cand, stage: 'direct', error: err.message });
-      }
-      for (const p of PROXIES) {
-        try {
-          const res = await tryProxyFetch(p.prefix, cand);
-          return { data: res, used: cand, via: 'proxy:' + p.prefix };
-        } catch (err) {
-          errors.push({ candidate: cand, stage: 'proxy:' + p.prefix, error: err.message });
-        }
-      }
-    }
-    throw new Error('All attempts failed. Attempts: ' + JSON.stringify(errors, null, 2));
-  }
-
-  function proxiedImageUrl(imgUrl) {
-    if (!imgUrl) return placeholderUrl();
-    try {
-      const u = new URL(imgUrl);
-      if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') return placeholderUrl();
-      const noScheme = u.hostname + u.pathname + (u.search || '');
-      return 'https://images.weserv.nl/?url=' + encodeURIComponent(noScheme) + '&w=900&fit=cover';
-    } catch (e) {
-      return placeholderUrl();
-    }
-  }
+  const PROXY_URL = 'https://thingproxy.freeboard.io/fetch/';
+  const API_URL = 'http://gpower.ct.ws/api/produits.php?i=1';
 
   function placeholderUrl() {
     return 'data:image/svg+xml;utf8,' + encodeURIComponent(
@@ -157,7 +71,7 @@
     const price = p.prix || '';
     const category = sanitize(p.categorie_nom || p.category || 'Non classé');
     const color = p.categorie_couleur || '#333';
-    const imgSrc = proxiedImageUrl(p.image || '');
+    const imgSrc = placeholderUrl();
     div.innerHTML = `
       <img class="thumb" loading="lazy" src="${imgSrc}" alt="${title}">
       <div class="content">
@@ -171,45 +85,48 @@
         </div>
       </div>
     `;
-    const img = div.querySelector('img');
-    img.addEventListener('error', ()=> { img.src = placeholderUrl(); img.style.objectFit = 'contain'; });
     return div;
   }
 
-  async function loadProducts() {
+  function loadProducts(data) {
     const productList = document.getElementById('product-list');
     const loading = document.getElementById('loading');
     const errorBox = document.getElementById('error');
     productList.innerHTML = '';
     errorBox.style.display = 'none';
-    loading.style.display = 'block';
-    loading.textContent = 'Chargement…';
+    loading.style.display = 'none';
+
+    if (!data || data.length === 0) {
+      loading.style.display = 'block';
+      loading.textContent = 'Aucun produit trouvé.';
+      return;
+    }
+
+    for (const item of data) {
+      const c = createCard(item);
+      productList.appendChild(c);
+    }
+  }
+
+  async function fetchData() {
     try {
-      const result = await fetchSmart(ORIGINAL_API);
-      const data = result.data;
-      loading.style.display = 'none';
-      const list = Array.isArray(data) ? data : (data.data || []);
-      if (!list || list.length === 0) {
-        loading.style.display = 'block';
-        loading.textContent = 'Aucun produit trouvé.';
-        return;
-      }
-      const note = document.getElementById('note');
-      if (note) note.textContent = `Chargé depuis: ${result.used} via ${result.via}`;
-      for (const item of list) {
-        const c = createCard(item);
-        productList.appendChild(c);
-      }
+      const proxyUrl = PROXY_URL + encodeURIComponent(API_URL);
+      const response = await fetch(proxyUrl);
+      if (!response.ok) throw new Error('Proxy returned ' + response.status);
+      const data = await response.text();
+      // Try to parse the response as JSON
+      const jsonData = JSON.parse(data);
+      loadProducts(jsonData);
     } catch (err) {
-      loading.style.display = 'none';
+      const errorBox = document.getElementById('error');
       errorBox.style.display = 'block';
       errorBox.innerHTML = `<strong>Erreur :</strong> Impossible de charger les produits. Voir console pour détails.`;
-      console.error('fetchSmart error:', err);
+      console.error('Error:', err);
     }
   }
 
   // Start
-  loadProducts();
+  fetchData();
 </script>
 </body>
 </html>
