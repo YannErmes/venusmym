@@ -35,209 +35,181 @@
       <h1>Nos Produits</h1>
       <div id="note">Auto HTTP/HTTPS fallback + proxy</div>
     </header>
-
     <div id="product-list" aria-live="polite"></div>
     <div id="loading" class="loading">Chargement…</div>
     <div id="error" class="error" style="display:none"></div>
-
     <footer>
       Pour la production : installez HTTPS sur l'API ou déployez un proxy HTTPS que vous contrôlez.
     </footer>
   </div>
-
 <script>
-/*
-  Smart fetch logic:
-  - Builds two candidate endpoints: https://... and http://...
-  - For each candidate it tries:
-      1) direct fetch
-      2) proxies (HTTPS) if direct fails
-  - Returns the first successful parsed JSON (must be an array or object).
-  - Proxies used: allorigins.win and corsproxy.io (public — may be rate-limited).
-*/
+  /*
+    Smart fetch logic:
+    - Builds two candidate endpoints: https://... and http://...
+    - For each candidate it tries:
+        1) direct fetch
+        2) proxies (HTTPS) if direct fails
+    - Returns the first successful parsed JSON (must be an array or object).
+    - Proxies used: allorigins.win and corsproxy.io (public — may be rate-limited).
+  */
+  const ORIGINAL_API = 'http://gpower.ct.ws/api/produits.php?i=1';
+  // Public HTTPS proxies (fallback). For reliability deploy your own proxy.
+  const PROXIES = [
+    { prefix: 'https://api.allorigins.win/raw?url=' }, // returns raw body
+    { prefix: 'https://corsproxy.io/?' }               // returns proxied content
+  ];
 
-const ORIGINAL_API = 'http://gpower.ct.ws/api/produits.php?i=1';
-
-// Public HTTPS proxies (fallback). For reliability deploy your own proxy.
-const PROXIES = [
-  { prefix: 'https://api.allorigins.win/raw?url=' }, // returns raw body
-  { prefix: 'https://corsproxy.io/?' }               // returns proxied content
-];
-
-async function tryDirectFetch(url) {
-  // direct fetch - may fail due to network or mixed-content
-  const resp = await fetch(url, { cache: 'no-store' });
-  if (!resp.ok) throw new Error('HTTP ' + resp.status);
-  // try parse as json
-  return await resp.json();
-}
-
-async function tryProxyFetch(proxyPrefix, targetUrl) {
-  const proxied = proxyPrefix + encodeURIComponent(targetUrl);
-  const r = await fetch(proxied, { cache: 'no-store' });
-  if (!r.ok) throw new Error('Proxy ' + proxyPrefix + ' returned ' + r.status);
-  const text = await r.text();
-  // attempt parse JSON
-  try { return JSON.parse(text); }
-  catch(e) { throw new Error('Proxy returned non-JSON'); }
-}
-
-function buildCandidates(origUrl) {
-  // ensure we can build both https and http variants
-  try {
-    const u = new URL(origUrl);
-    const hostAndPath = u.host + u.pathname + (u.search || '');
-    const httpsUrl = 'https://' + hostAndPath;
-    const httpUrl = 'http://' + hostAndPath;
-    // Prefer HTTPS variant first
-    return [httpsUrl, httpUrl];
-  } catch (e) {
-    // fallback - just return original and scheme swapped
-    if (origUrl.startsWith('https://')) return [origUrl, origUrl.replace(/^https:/,'http:')];
-    if (origUrl.startsWith('http://')) return [origUrl.replace(/^http:/,'https:'), origUrl];
-    return [origUrl];
-  }
-}
-
-async function fetchSmart(origUrl) {
-  const candidates = buildCandidates(origUrl);
-  const pageIsHttps = (location.protocol === 'https:');
-  const errors = [];
-
-  // For each candidate endpoint, try direct then proxies
-  for (const cand of candidates) {
-    // If page is HTTPS and candidate is HTTP, direct fetch will likely be blocked by mixed content.
-    // But we'll still attempt and catch the failure, then try proxies.
+  async function tryDirectFetch(url) {
     try {
-      // If candidate is HTTP but page is HTTPS, we can skip direct attempt to avoid console noise.
-      if (!(pageIsHttps && cand.startsWith('http:'))) {
-        const direct = await tryDirectFetch(cand);
-        return { data: direct, used: cand, via: 'direct' };
+      const resp = await fetch(url, { cache: 'no-store' });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      return await resp.json();
+    } catch (err) {
+      throw new Error('Direct fetch failed: ' + err.message);
+    }
+  }
+
+  async function tryProxyFetch(proxyPrefix, targetUrl) {
+    try {
+      const proxied = proxyPrefix + encodeURIComponent(targetUrl);
+      const r = await fetch(proxied, { cache: 'no-store' });
+      if (!r.ok) throw new Error('Proxy ' + proxyPrefix + ' returned ' + r.status);
+      const text = await r.text();
+      try { return JSON.parse(text); }
+      catch(e) { throw new Error('Proxy returned non-JSON'); }
+    } catch (err) {
+      throw new Error('Proxy fetch failed: ' + err.message);
+    }
+  }
+
+  function buildCandidates(origUrl) {
+    try {
+      const u = new URL(origUrl);
+      const hostAndPath = u.host + u.pathname + (u.search || '');
+      const httpsUrl = 'https://' + hostAndPath;
+      const httpUrl = 'http://' + hostAndPath;
+      return [httpsUrl, httpUrl];
+    } catch (e) {
+      if (origUrl.startsWith('https://')) return [origUrl, origUrl.replace(/^https:/,'http:')];
+      if (origUrl.startsWith('http://')) return [origUrl.replace(/^http:/,'https:'), origUrl];
+      return [origUrl];
+    }
+  }
+
+  async function fetchSmart(origUrl) {
+    const candidates = buildCandidates(origUrl);
+    const pageIsHttps = (location.protocol === 'https:');
+    const errors = [];
+    for (const cand of candidates) {
+      try {
+        if (!(pageIsHttps && cand.startsWith('http:'))) {
+          const direct = await tryDirectFetch(cand);
+          return { data: direct, used: cand, via: 'direct' };
+        }
+      } catch (err) {
+        errors.push({ candidate: cand, stage: 'direct', error: err.message });
+      }
+      for (const p of PROXIES) {
+        try {
+          const res = await tryProxyFetch(p.prefix, cand);
+          return { data: res, used: cand, via: 'proxy:' + p.prefix };
+        } catch (err) {
+          errors.push({ candidate: cand, stage: 'proxy:' + p.prefix, error: err.message });
+        }
+      }
+    }
+    throw new Error('All attempts failed. Attempts: ' + JSON.stringify(errors, null, 2));
+  }
+
+  function proxiedImageUrl(imgUrl) {
+    if (!imgUrl) return placeholderUrl();
+    try {
+      const u = new URL(imgUrl);
+      if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') return placeholderUrl();
+      const noScheme = u.hostname + u.pathname + (u.search || '');
+      return 'https://images.weserv.nl/?url=' + encodeURIComponent(noScheme) + '&w=900&fit=cover';
+    } catch (e) {
+      return placeholderUrl();
+    }
+  }
+
+  function placeholderUrl() {
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(
+      `<svg xmlns='http://www.w3.org/2000/svg' width='900' height='600'>
+         <rect width='100%' height='100%' fill='#efefef'/>
+         <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='#888' font-size='28'>
+           Image indisponible
+         </text>
+       </svg>`
+    );
+  }
+
+  function sanitize(str) {
+    if (!str) return '';
+    return String(str).replaceAll('<','&lt;').replaceAll('>','&gt;');
+  }
+
+  function createCard(p) {
+    const div = document.createElement('div');
+    div.className = 'card';
+    const title = sanitize(p.nom || 'Produit');
+    const desc = sanitize(p.description || '');
+    const price = p.prix || '';
+    const category = sanitize(p.categorie_nom || p.category || 'Non classé');
+    const color = p.categorie_couleur || '#333';
+    const imgSrc = proxiedImageUrl(p.image || '');
+    div.innerHTML = `
+      <img class="thumb" loading="lazy" src="${imgSrc}" alt="${title}">
+      <div class="content">
+        <div>
+          <div class="title">${title}</div>
+          <p class="desc">${desc}</p>
+        </div>
+        <div class="meta">
+          <div class="price">${price ? price + ' MAD' : ''}</div>
+          <div class="category" style="background:${color}">${category}</div>
+        </div>
+      </div>
+    `;
+    const img = div.querySelector('img');
+    img.addEventListener('error', ()=> { img.src = placeholderUrl(); img.style.objectFit = 'contain'; });
+    return div;
+  }
+
+  async function loadProducts() {
+    const productList = document.getElementById('product-list');
+    const loading = document.getElementById('loading');
+    const errorBox = document.getElementById('error');
+    productList.innerHTML = '';
+    errorBox.style.display = 'none';
+    loading.style.display = 'block';
+    loading.textContent = 'Chargement…';
+    try {
+      const result = await fetchSmart(ORIGINAL_API);
+      const data = result.data;
+      loading.style.display = 'none';
+      const list = Array.isArray(data) ? data : (data.data || []);
+      if (!list || list.length === 0) {
+        loading.style.display = 'block';
+        loading.textContent = 'Aucun produit trouvé.';
+        return;
+      }
+      const note = document.getElementById('note');
+      if (note) note.textContent = `Chargé depuis: ${result.used} via ${result.via}`;
+      for (const item of list) {
+        const c = createCard(item);
+        productList.appendChild(c);
       }
     } catch (err) {
-      errors.push({ candidate: cand, stage: 'direct', error: err.message });
-      // continue to try proxies below
-    }
-
-    // Try proxies for this candidate
-    for (const p of PROXIES) {
-      try {
-        const res = await tryProxyFetch(p.prefix, cand);
-        return { data: res, used: cand, via: 'proxy:' + p.prefix };
-      } catch (err) {
-        errors.push({ candidate: cand, stage: 'proxy:' + p.prefix, error: err.message });
-      }
+      loading.style.display = 'none';
+      errorBox.style.display = 'block';
+      errorBox.innerHTML = `<strong>Erreur :</strong> Impossible de charger les produits. Voir console pour détails.`;
+      console.error('fetchSmart error:', err);
     }
   }
 
-  // If all failed, throw with aggregated info
-  const msg = 'All attempts failed. Attempts: ' + JSON.stringify(errors, null, 2);
-  throw new Error(msg);
-}
-
-// Image proxying: use images.weserv.nl (HTTPS) for remote images. If image host is localhost -> use placeholder.
-function proxiedImageUrl(imgUrl) {
-  if (!imgUrl) return placeholderUrl();
-  try {
-    const u = new URL(imgUrl);
-    // if image is from localhost or 127.0.0.1, can't fetch from browser; use placeholder
-    if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') return placeholderUrl();
-    // remove scheme for weserv
-    const noScheme = u.hostname + u.pathname + (u.search || '');
-    return 'https://images.weserv.nl/?url=' + encodeURIComponent(noScheme) + '&w=900&fit=cover';
-  } catch (e) {
-    return placeholderUrl();
-  }
-}
-
-function placeholderUrl() {
-  // small data URI placeholder or an external stable image
-  return 'data:image/svg+xml;utf8,' + encodeURIComponent(
-    `<svg xmlns='http://www.w3.org/2000/svg' width='900' height='600'>
-       <rect width='100%' height='100%' fill='#efefef'/>
-       <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='#888' font-size='28'>
-         Image indisponible
-       </text>
-     </svg>`
-  );
-}
-
-function sanitize(str) {
-  if (!str) return '';
-  return String(str).replaceAll('<','&lt;').replaceAll('>','&gt;');
-}
-
-function createCard(p) {
-  const div = document.createElement('div');
-  div.className = 'card';
-  const title = sanitize(p.nom || p.name || 'Produit');
-  const desc = sanitize(p.description || '');
-  const price = p.prix || p.price || '';
-  const category = sanitize(p.categorie_nom || p.category || 'Non classé');
-  const color = p.categorie_couleur || '#333';
-  const imgSrc = proxiedImageUrl(p.image || '');
-
-  div.innerHTML = `
-    <img class="thumb" loading="lazy" src="${imgSrc}" alt="${title}">
-    <div class="content">
-      <div>
-        <div class="title">${title}</div>
-        <p class="desc">${desc}</p>
-      </div>
-      <div class="meta">
-        <div class="price">${price ? price + ' MAD' : ''}</div>
-        <div class="category" style="background:${color}">${category}</div>
-      </div>
-    </div>
-  `;
-  const img = div.querySelector('img');
-  img.addEventListener('error', ()=> { img.src = placeholderUrl(); img.style.objectFit = 'contain'; });
-  return div;
-}
-
-async function loadProducts() {
-  const productList = document.getElementById('product-list');
-  const loading = document.getElementById('loading');
-  const errorBox = document.getElementById('error');
-  productList.innerHTML = '';
-  errorBox.style.display = 'none';
-  loading.style.display = 'block';
-  loading.textContent = 'Chargement…';
-
-  try {
-    const result = await fetchSmart(ORIGINAL_API);
-    const data = result.data;
-    loading.style.display = 'none';
-
-    // Normalise: if object contains data wrapper, try common keys
-    const list = Array.isArray(data) ? data : (data.data || data.items || []);
-    if (!list || list.length === 0) {
-      loading.style.display = 'block';
-      loading.textContent = 'Aucun produit trouvé.';
-      return;
-    }
-
-    // Show debug note of which endpoint used (small)
-    const note = document.getElementById('note');
-    note.textContent = `Chargé depuis: ${result.used} via ${result.via}`;
-
-    for (const item of list) {
-      const c = createCard(item);
-      productList.appendChild(c);
-    }
-
-  } catch (err) {
-    loading.style.display = 'none';
-    errorBox.style.display = 'block';
-    // keep message short for UI, but log full error in console
-    errorBox.innerHTML = `<strong>Erreur :</strong> Impossible de charger les produits. Voir console pour détails.`;
-    console.error('fetchSmart error:', err);
-  }
-}
-
-// Start
-loadProducts();
-
+  // Start
+  loadProducts();
 </script>
 </body>
 </html>
